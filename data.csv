@@ -1,0 +1,3 @@
+﻿序号,标签名称,页面路径,页面参数,商品名称,备注
+1,首页 NFC,"/pages/home/index,",source=home,首页,敦煌到大足
+2,四川博物馆,/pages/sichuan/index,source=sichuan,四川博物馆,文创品
