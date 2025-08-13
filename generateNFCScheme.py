@@ -1,7 +1,7 @@
 import requests
 import json
-import pandas as pd
-import numpy as np
+from dotenv import load_dotenv
+import os
 
 class WechatNFCSchemeGenerator:
     def __init__(self, appid, appsecret, model_id):
@@ -54,10 +54,11 @@ class WechatNFCSchemeGenerator:
 
 # 使用示例
 if __name__ == "__main__":
+    load_dotenv()  # 读取 .env 文件
     # 初始化配置（替换为实际参数）
     # 钛文创
-    APPID = "wx97376bdd89b0c344"
-    APPSECRET = "9fdebc8b0ae84cd125af9624aded94b6"
+    APPID = os.getenv("APPID")
+    APPSECRET = os.getenv("APPSECRET")
     # MODEL_ID = "-UESYamd8dP0Phl5NAGh6w"
     MODEL_ID = "xt2ffIbFxRuHUZm0AUOoow"
 

@@ -81,8 +81,9 @@ def random_code(length=6):
 def gen_schema(sn, code, rd="release"):
     # 初始化配置（替换为实际参数）
     # 钛文创
-    APPID = "wx97376bdd89b0c344"
-    APPSECRET = "9fdebc8b0ae84cd125af9624aded94b6"
+    load_dotenv()  # 读取 .env 文件
+    APPID = os.getenv("APPID")
+    APPSECRET = os.getenv("APPSECRET")
     # MODEL_ID = "-UESYamd8dP0Phl5NAGh6w"
     MODEL_ID = "xt2ffIbFxRuHUZm0AUOoow"
 
@@ -118,7 +119,6 @@ if __name__ == "__main__":
     else:
         env_version = "release"  # 默认使用 release 版本
 
-    load_dotenv(".env")
     # 从 .env 读取上次最大列数
     last_max = os.getenv("LAST_MAX_COLUMNS")
     last_max = int(last_max) if last_max is not None else 0
