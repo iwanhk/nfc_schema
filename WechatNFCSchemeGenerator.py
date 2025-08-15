@@ -1,14 +1,34 @@
 import requests
 import json
-from dotenv import load_dotenv
+import random
+import string
+import urllib.parse
+import logging
+from dotenv import load_dotenv, set_key
 import os
+import re
+
+pattern = r'schema: ([^ ]+)'
 
 class WechatNFCSchemeGenerator:
-    def __init__(self, appid, appsecret, model_id):
-        self.appid = appid
-        self.appsecret = appsecret
-        self.model_id = model_id
+    def __init__(self):
+        load_dotenv()  # 读取 .env 文件
+        self.appid = os.getenv("APPID")
+        self.appsecret = os.getenv("APPSECRET")
+        self.model_id = "xt2ffIbFxRuHUZm0AUOoow"
         self.access_token = None
+        # --------------------------
+        # 配置日志
+        # --------------------------
+        log_file = "nfc_schema.log"
+        logging.basicConfig(
+            level=logging.INFO,
+            format='%(asctime)s - %(levelname)s - %(message)s',
+            handlers=[
+                logging.FileHandler(log_file, encoding='utf-8'),
+                # logging.StreamHandler()  # 同时输出到控制台
+            ]
+        )
 
     def _get_access_token(self):
         """获取access_token（有效期2小时）"""
@@ -22,7 +42,11 @@ class WechatNFCSchemeGenerator:
         self.access_token = data['access_token']
         return self.access_token
 
-    def generate_nfc_scheme(self, path="/pages/index/index", env_version="release", sn=None):
+    def random_code(self, length=6):
+        chars = string.ascii_letters + string.digits  # 大小写字母 + 数字
+        return urllib.parse.quote(''.join(random.choices(chars, k=length)))
+    
+    def generate_nfc_scheme(self, sn=None, code="", env_version="release", path="/pages/index/index"):
         """生成NFC Scheme"""
         if not self.access_token:
             self._get_access_token()
@@ -31,6 +55,7 @@ class WechatNFCSchemeGenerator:
         payload = {
             "jump_wxa": {
                 "path": path,
+                "query": f"contentId=1&tenantId=1&id=1&code={code}",
                 "env_version": env_version  # release（线上）/trial（体验）/develop（开发）
             },
             "model_id": self.model_id
@@ -46,34 +71,15 @@ class WechatNFCSchemeGenerator:
             response.raise_for_status()
             result = response.json()
             if result.get("errcode") == 0:
+                logging.info(f"env={env_version}, sn={sn}, code={code}, schema={result["openlink"]}")
                 return result["openlink"]
             else:
-                raise Exception(f"接口返回错误: {result}")
+                if result.get("errcode") == 9800010:
+                    old_schema = re.findall(pattern, result['errmsg'])[0]
+                    logging.info(f"env={env_version}, sn={sn}, code={code}, schema={old_schema}")
+                    return old_schema
+                logging.error(f"sn={sn} Error: {result['errmsg']}")
+                raise Exception(f"接口返回错误: {result['errmsg']}")
         except requests.exceptions.RequestException as e:
             raise Exception(f"请求异常: {str(e)}")
-
-# 使用示例
-if __name__ == "__main__":
-    load_dotenv()  # 读取 .env 文件
-    # 初始化配置（替换为实际参数）
-    # 钛文创
-    APPID = os.getenv("APPID")
-    APPSECRET = os.getenv("APPSECRET")
-    # MODEL_ID = "-UESYamd8dP0Phl5NAGh6w"
-    MODEL_ID = "xt2ffIbFxRuHUZm0AUOoow"
-
-    # 敦煌
-    # APPID = "wx7ff39089532d58ed"
-    # APPSECRET = "d587bcf89e0134df35f08ca1967e5e4f"
-    # MODEL_ID = "UESYamd8dP0Phl5NAGh6w"
-    
-    generator = WechatNFCSchemeGenerator(APPID, APPSECRET, MODEL_ID)
-    try:
-        scheme_url = generator.generate_nfc_scheme(
-            path="/pages/index/index",     # 小程序首页路径
-            env_version="release",       # 必须为已发布的线上版本（来自）
-            sn= "03"          # 可选设备序列号（某些硬件场景需要）
-        )
-        print("生成的NFC Scheme:", scheme_url)
-    except Exception as e:
-        print("生成失败:", str(e))
+            
