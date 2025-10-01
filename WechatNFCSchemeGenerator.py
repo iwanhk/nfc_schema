@@ -46,7 +46,7 @@ class WechatNFCSchemeGenerator:
         chars = string.ascii_letters + string.digits  # 大小写字母 + 数字
         return urllib.parse.quote(''.join(random.choices(chars, k=length)))
     
-    def generate_nfc_scheme(self, sn=None, code="", env_version="release", path="/pages/index/index"):
+    def generate_nfc_scheme(self, arg, sn=None, code="", env_version="release", path="/pages/index/index"):
         """生成NFC Scheme"""
         if not self.access_token:
             self._get_access_token()
@@ -55,7 +55,7 @@ class WechatNFCSchemeGenerator:
         payload = {
             "jump_wxa": {
                 "path": path,
-                "query": f"contentId=1&tenantId=1&id=1&code={code}",
+                "query": f"{arg}{code}",
                 "env_version": env_version  # release（线上）/trial（体验）/develop（开发）
             },
             "model_id": self.model_id
@@ -67,6 +67,7 @@ class WechatNFCSchemeGenerator:
         headers = {"Content-Type": "application/json"}
         
         try:
+            # print(payload)
             response = requests.post(url, data=json.dumps(payload), headers=headers)
             response.raise_for_status()
             result = response.json()
@@ -74,10 +75,11 @@ class WechatNFCSchemeGenerator:
                 logging.info(f"env={env_version}, sn={sn}, code={code}, schema={result["openlink"]}")
                 return result["openlink"]
             else:
-                if result.get("errcode") == 9800010:
-                    old_schema = re.findall(pattern, result['errmsg'])[0]
-                    logging.info(f"env={env_version}, sn={sn}, code={code}, schema={old_schema}")
-                    return old_schema
+                # print('recover from error')
+                # if result.get("errcode") == 9800010:
+                #     old_schema = re.findall(pattern, result['errmsg'])[0]
+                #     logging.info(f"env={env_version}, sn={sn}, code={code}, schema={old_schema}")
+                #     return old_schema
                 logging.error(f"sn={sn} Error: {result['errmsg']}")
                 raise Exception(f"接口返回错误: {result['errmsg']}")
         except requests.exceptions.RequestException as e:
